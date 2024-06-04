@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>0iqAPI</title>
+<style>
+td {padding:5px;}
+button{margin: 5px;}
+</style>
+</head>
+<body>
+    <h2>Список пользователей</h2>
+    <div>
+        <input type="hidden" id="clientId" />
+        <p>
+            Имя:<br/>
+            <input id="clientFirstName" />
+        </p>
+        <p>
+            Фамилия:<br />
+            <input id="clientLastName"/>
+        </p>
+        <p>
+            Email:<br />
+            <input id="clientEmail"/>
+        </p>
+        <p>
+            Адрес:<br />
+            <input id="clientAddress"/>
+        </p>
+        <p>
+            Скидка:<br />
+            <input id="clientDiscount" type="number" />
+        </p>
+         <p>
+            <button id="saveBtn">Сохранить</button>
+            <button id="resetBtn">Сбросить</button>
+        </p>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Имя</th>
+                <th>Фамилия</th>
+                <th>Email</th>
+                <th>Адрес</th>
+                <th>Скидка</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+    // Получение всех пользователей
+        async function getClients() {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/clients", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const clients = await response.json();
+                const rows = document.querySelector("tbody");
+                // добавляем полученные элементы в таблицу
+                clients.forEach(client => rows.append(row(client)));
+            }
+        }
+        // Получение одного пользователя
+        async function getClient(id) {
+            const response = await fetch(`/api/clients/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const client = await response.json();
+                document.getElementById("clientId").value = client.id;
+                document.getElementById("clientFirstName").value = client.first_name;
+                document.getElementById("clientLastName").value = client.last_name;
+                document.getElementById("clientEmail").value = client.email;
+                document.getElementById("clientAddress").value = client.address;
+                document.getElementById("clientDiscount").value = client.discount;
+            }
+            else {
+                // если произошла ошибка, получаем сообщение об ошибке
+                const error = await response.json();
+                console.log(error.message); // и выводим его на консоль
+            }
+        }
+        // Добавление пользователя
+        async function createClient(clientFirstName, clientLastName, clientEmail, clientAddress, clientDiscount) {
+
+            const response = await fetch("api/clients", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    first_name: clientFirstName,
+                    last_name: clientLastName,
+                    email: clientEmail,
+                    address: clientAddress,
+                    discount: parseInt(clientDiscount)
+                })
+            });
+            if (response.ok === true) {
+                const client = await response.json();
+                document.querySelector("tbody").append(row(client));
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+        // Изменение пользователя
+        async function editClient(clientId, clientFirstName, clientLastName, clientEmail, clientAddress, clientDiscount) {
+            const response = await fetch("api/clients", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: clientId,
+                    first_name: clientFirstName,
+                    last_name: clientLastName,
+                    email: clientEmail,
+                    address: clientAddress,
+                    discount: parseInt(clientDiscount)
+                })
+            });
+            if (response.ok === true) {
+                const client = await response.json();
+                document.querySelector(`tr[data-rowid='${client.id}']`).replaceWith(row(client));
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+        // Удаление пользователя
+        async function deleteClient(id) {
+            const response = await fetch(`/api/clients/${id}`, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const client = await response.json();
+                document.querySelector(`tr[data-rowid='${client.id}']`).remove();
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+
+        // сброс данных формы после отправки
+        function reset() {
+            document.getElementById("clientId").value =
+            document.getElementById("clientFirstName").value =
+            document.getElementById("clientLastName").value =
+            document.getElementById("clientEmail").value =
+            document.getElementById("clientAddress").value =
+            document.getElementById("clientDiscount").value = "";
+        }
+        // создание строки для таблицы
+        function row(client) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", client.id);
+
+            const firstNameTd = document.createElement("td");
+            firstNameTd.append(client.first_name);
+            tr.append(firstNameTd);
+
+            const lastNameTd = document.createElement("td");
+            lastNameTd.append(client.last_name);
+            tr.append(lastNameTd);
+
+            const emailTd = document.createElement("td");
+            emailTd.append(client.email);
+            tr.append(emailTd);
+
+            const addressTd = document.createElement("td");
+            addressTd.append(client.address);
+            tr.append(addressTd);
+
+            const discountTd = document.createElement("td");
+            discountTd.append(client.discount);
+            tr.append(discountTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("button");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", async() => await getClient(client.id));
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("button");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", async () => await deleteClient(client.id));
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+        // сброс значений формы
+        document.getElementById("resetBtn").addEventListener("click", () =>  reset());
+
+        // отправка формы
+        document.getElementById("saveBtn").addEventListener("click", async () => {
+
+            const id = document.getElementById("clientId").value;
+            const first_name = document.getElementById("clientFirstName").value;
+            const last_name = document.getElementById("clientLastName").value;
+            const email = document.getElementById("clientEmail").value;
+            const address = document.getElementById("clientAddress").value;
+            const discount = document.getElementById("clientDiscount").value;
+            if (id === "")
+                await createClient(first_name, last_name, email, address, discount);
+            else
+                await editClient(id, first_name, last_name, email, address, discount);
+            reset();
+        });
+
+        // загрузка пользователей
+        getClients();
+    </script>
+</body>
+</html>
